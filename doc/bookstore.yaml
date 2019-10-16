@@ -1,0 +1,397 @@
+swagger: '2.0'
+info:
+ version: 1.0.0
+ title: Bookstore
+ description: API used for managing books
+ contact:
+  email: petrijamilojevic@gmail.com
+host: '127.0.0.1:10000'
+basePath: '/'
+schemes: 
+- http
+consumes:
+- application/json
+produces:
+- application/json
+tags:
+- name: Books
+  description: Endpoints for working with books
+- name: Comments
+  description: Endpoints for working with comments
+paths: 
+ '/books':
+  get:
+   tags:
+   - Books
+   summary: List of all books
+   description: Returns list of books. This endpoint accepts query parameters for page number and page size.
+   parameters:
+   - $ref: '#/parameters/pageNumber'
+   - $ref: '#/parameters/pageSize'
+   responses:
+        '200':
+         description: List of books
+         schema:
+          $ref: '#/definitions/BooksCollection'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+  post:
+   tags:
+   - Books
+   summary: Create book
+   description: Create new book
+   parameters:
+    - name: post data
+      in: body
+      required: true
+      schema:
+       $ref: '#/definitions/BookPost'
+   responses:
+    '200':
+     description: Book created
+     schema:
+      $ref: '#/definitions/Book'
+    default:
+     description: Unexpected error
+     schema:
+      $ref: '#/definitions/Error'
+ '/books/{id}':
+  get:
+   tags:
+   - Books
+   summary: Get book
+   description: Returns book data
+   parameters:
+   - name: id
+     in: path
+     description: Book id
+     required: true
+     type: integer
+   responses:
+        '200':
+          description: Book data
+          schema:
+           $ref: '#/definitions/Book'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+  put:
+   tags:
+   - Books
+   summary: Update book
+   description: Updates book data
+   parameters:
+   - name: id
+     in: path
+     description: Book id
+     required: true
+     type: integer
+   - name: put data
+     in: body
+     required: true
+     schema:
+      $ref: '#/definitions/BookPut'
+   responses:
+        '200':
+          description: Book updated successfully
+          schema:
+           $ref: '#/definitions/Book'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+  delete:
+   tags:
+   - Books
+   summary: Delete book
+   description: Deletes book
+   parameters:
+   - name: id
+     in: path
+     description: Book id
+     required: true
+     type: integer
+   responses:
+        '200':
+          description: Book deleted successfully
+          schema:
+           $ref: '#/definitions/Book'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+ '/books/{bookId}/comments':
+  get:
+   tags:
+   - Comments
+   summary: List of all comments for given book
+   description: Returns list of comments
+   parameters:
+   - name: bookId
+     in: path
+     description: Book id
+     required: true
+     type: integer
+   - $ref: '#/parameters/pageNumber'
+   - $ref: '#/parameters/pageSize'
+   responses:
+        '200':
+          description: List of book's comments
+          schema:
+           $ref: '#/definitions/CommentsCollection'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+  post:
+   tags:
+   - Comments
+   summary: Create comment
+   description: Create new comment
+   parameters:
+    - name: bookId
+      in: path
+      description: Book id
+      required: true
+      type: integer
+    - name: post data
+      in: body
+      required: true
+      schema:
+       $ref: '#/definitions/CommentPost'
+   responses:
+    '200':
+     description: Comment created
+     schema:
+      $ref: '#/definitions/Comment'
+    default:
+     description: Unexpected error
+     schema:
+      $ref: '#/definitions/Error'
+ '/books/{bookId}/comments/{id}':
+  get:
+   tags:
+   - Comments
+   parameters:
+    - name: bookId
+      in: path
+      description: Book id
+      required: true
+      type: integer
+    - name: id
+      in: path
+      description: Comment id
+      required: true
+      type: integer
+   responses:
+        '200':
+          description: Comment data
+          schema:
+           $ref: '#/definitions/Comment'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+  put:
+   tags:
+   - Comments
+   parameters:
+    - name: bookId
+      in: path
+      description: Book id
+      required: true
+      type: integer
+    - name: id
+      in: path
+      description: Comment id
+      required: true
+      type: integer
+    - name: put data
+      in: body
+      required: true
+      schema:
+       $ref: '#/definitions/CommentPut'
+   responses:
+        '200':
+          description: Comment updated successfully
+          schema:
+           $ref: '#/definitions/Comment'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+  delete:
+   tags:
+   - Comments
+   summary: Delete comment
+   description: Deletes comment
+   parameters:
+   - name: bookId
+     in: path
+     description: Book id
+     required: true
+     type: integer
+   - name: id
+     in: path
+     description: Comment id
+     required: true
+     type: integer
+   responses:
+        '200':
+          description: Comment deleted successfully
+          schema:
+           $ref: '#/definitions/Comment'
+        default:
+         description: Unexpected error
+         schema:
+          $ref: '#/definitions/Error'
+definitions:
+  Book:
+   type: object
+   properties:
+    id:
+     type: integer
+    title:
+     type: string
+    author:
+     type: string
+    isbn:
+     type: string
+    publisher:
+     type: string
+    publicationDate:
+     type: string
+     format: date-time
+    pages:
+     type: integer
+    comments:
+      type: array
+      items:
+        $ref: '#/definitions/Comment'
+  BookPost:
+   type: object
+   properties:
+    title:
+     type: string
+    author:
+     type: string
+    isbn:
+     type: string
+    publisher:
+     type: string
+    publicationDate:
+     type: string
+     format: date-time
+    pages:
+     type: integer
+    comments:
+      type: array
+      items:
+        $ref: '#/definitions/CommentPost'
+  BookPut:
+   type: object
+   properties:
+    title:
+     type: string
+    author:
+     type: string
+    isbn:
+     type: string
+    publisher:
+     type: string
+    publicationDate:
+     type: string
+     format: date-time
+    pages:
+     type: integer
+  Comment:
+   type: object
+   properties:
+    id:
+     type: integer
+    bookId:
+     type: integer
+    author:
+     type: string
+    commentText:
+     type: string
+  CommentPost:
+   type: object
+   properties:
+    author:
+     type: string
+    commentText:
+     type: string
+  CommentPut:
+   type: object
+   properties:
+    author:
+     type: string
+    commentText:
+     type: string
+  BooksCollection:
+   required:
+    - data
+    - meta
+   properties:
+    data:
+     type: array
+     items:
+      $ref: '#/definitions/Book'
+    meta:
+     $ref: '#/definitions/MetaData'
+  CommentsCollection:
+   required:
+    - data
+    - meta
+   properties:
+    data:
+     type: array
+     items:
+      $ref: '#/definitions/Comment'
+    meta:
+     $ref: '#/definitions/MetaData'
+  MetaData:
+   properties:
+    pagination:
+     type: object
+     items:
+      $ref: '#/definitions/Pagination'
+  Error:
+   required:
+    - code
+    - message
+   properties:
+    code:
+     type: integer
+     format: int32
+    message:
+     type: string
+  Pagination:
+   properties:
+    total:
+     type: integer
+    totalPages:
+     type: integer
+    currentPage:
+     type: integer
+    perPage:
+     type: integer
+    count:
+     type: integer
+parameters:
+ pageNumber:
+  name: pageNumber
+  in: query
+  description: Page number
+  required: true
+  type: integer
+ pageSize:
+  name: pageSize
+  in: query
+  description: Page size
+  required: true
+  type: integer
