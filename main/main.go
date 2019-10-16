@@ -54,11 +54,11 @@ func handleRequests() {
 	myRouter.HandleFunc("/books/{id}", getBook).Methods("GET")
 	myRouter.HandleFunc("/books/{id}", putBook).Methods("PUT")
 	myRouter.HandleFunc("/books/{id}", deleteBook).Methods("DELETE")
-	myRouter.HandleFunc("/comments", getComments).Methods("GET")
-	myRouter.HandleFunc("/comments", postComment).Methods("POST")
-	myRouter.HandleFunc("/comments/{bookId}/{id}", getComment).Methods("GET")
-	myRouter.HandleFunc("/comments/{bookId}/{id}", putComment).Methods("PUT")
-	myRouter.HandleFunc("/comments/{bookId}/{id}", deleteComment).Methods("DELETE")
+	myRouter.HandleFunc("/books/{bookId}/comments", getComments).Methods("GET")
+	myRouter.HandleFunc("/books/{bookId}/comments", postComment).Methods("POST")
+	myRouter.HandleFunc("/books/{bookId}/comments/{id}", getComment).Methods("GET")
+	myRouter.HandleFunc("/books/{bookId}/comments/{id}", putComment).Methods("PUT")
+	myRouter.HandleFunc("/books/{bookId}/comments/{id}", deleteComment).Methods("DELETE")
 	http.ListenAndServe(":10000", myRouter)
 }
 
@@ -79,17 +79,20 @@ func getBooks(w http.ResponseWriter, r *http.Request) {
 	pageNumber,err := strconv.Atoi(r.URL.Query().Get("pageNumber"))
 	if err != nil || pageNumber <= 0 {
 		returnError(w, 400, "Bad Request. Invalid Page Number.")
+		log.Println(err)
 		return
 	}
 	pageSize,err := strconv.Atoi(r.URL.Query().Get("pageSize"))
 	if err != nil || pageSize <= 0 {
 		returnError(w, 400, "Bad Request. Invalid Page Size.")
+		log.Println(err)
 		return
 	}	
 	books := []dao.Book{} 
 	var totalRows int
 	if err := dao.GetBooks(&totalRows,&pageNumber,&pageSize,&books); err != nil {
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	countRows := len(books)
@@ -120,6 +123,7 @@ func postBook(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		returnError(w, 400, "Bad Request.")
+		log.Println(err)
 		return
 	}
 	var book dao.Book
@@ -129,6 +133,7 @@ func postBook(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := dao.PostBook(&book); err != nil {
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -138,20 +143,23 @@ func postBook(w http.ResponseWriter, r *http.Request) {
 func getBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
-	key, err := strconv.Atoi(vars["id"])
-	if err != nil {
+	bookId, err := strconv.Atoi(vars["id"])
+	if err != nil || bookId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Book ID.")
+		log.Println(err)
 		return
 	}	
 	var book dao.Book
-	book.ID = uint(key)
+	book.ID = uint(bookId)
 	if err := dao.GetBook(&book); err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			returnError(w, 404, "Record Not Found.")
+			log.Println(err)
 			return
 		}
 
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -161,16 +169,18 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 func putBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")	
 	vars := mux.Vars(r)
-	key, err := strconv.Atoi(vars["id"])
-	if err != nil {
+	bookId, err := strconv.Atoi(vars["id"])
+	if err != nil || bookId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Book ID.")
+		log.Println(err)
 		return
 	}
 	var book dao.Book
-	book.ID = uint(key)
+	book.ID = uint(bookId)
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		returnError(w, 400, "Bad Request.")
+		log.Println(err)
 		return
 	}	
 	json.Unmarshal(reqBody, &book)
@@ -180,10 +190,12 @@ func putBook(w http.ResponseWriter, r *http.Request) {
 	}
 	if dao.ValidateBookId(book.ID) == false {
 		returnError(w, 404, "Record Not Found.")
+		log.Println(err)
 		return
 	}
 	if err := dao.PutBook(&book); err != nil {
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -193,19 +205,22 @@ func putBook(w http.ResponseWriter, r *http.Request) {
 func deleteBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")	
 	vars := mux.Vars(r)
-	key, err := strconv.Atoi(vars["id"])
-	if err != nil {
+	bookId, err := strconv.Atoi(vars["id"])
+	if err != nil || bookId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Book ID.")
+		log.Println(err)
 		return
 	}
 	var book dao.Book
-	book.ID = uint(key)
+	book.ID = uint(bookId)
 	if err := dao.DeleteBook(&book); err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			returnError(w, 404, "Record Not Found.")
+			log.Println(err)
 			return
 		}
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -251,20 +266,30 @@ func bookValidation(w http.ResponseWriter, book dao.Book) bool {
 
 func getComments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	bookId, err := strconv.Atoi(vars["bookId"])
+	if err != nil || bookId < 0 {
+		returnError(w,400,"Bad Request. Invalid Book ID.")
+		log.Println(err)
+		return
+	}
 	pageNumber, err := strconv.Atoi(r.URL.Query().Get("pageNumber"))
 	if err != nil || pageNumber <= 0 {
 		returnError(w, 400, "Bad Request. Invalid Page Number.")
+		log.Println(err)
 		return
 	}
 	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
 	if err != nil || pageSize <= 0 {
 		returnError(w, 400, "Bad Request. Invalid Page Size.")
+		log.Println(err)
 		return
 	}	
 	comments := []dao.Comment{} 
 	var totalRows int
-	if err := dao.GetComments(&totalRows,&pageNumber,&pageSize,&comments); err != nil {
+	if err := dao.GetComments(&totalRows,&pageNumber,&pageSize,&bookId,&comments); err != nil {
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	countRows := len(comments)
@@ -292,19 +317,29 @@ func getComments(w http.ResponseWriter, r *http.Request) {
 
 func postComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")	
+	vars := mux.Vars(r)
+	bookId, err := strconv.Atoi(vars["bookId"])
+	if err != nil || bookId < 0 {
+		returnError(w,400,"Bad Request. Invalid Book ID.")
+		log.Println(err)
+		return
+	}
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		returnError(w, 400, "Bad Request.")
+		log.Println(err)
 		return
 	}
 	var comment dao.Comment
 	json.Unmarshal(reqBody, &comment)
+	comment.BookID = uint(bookId)
 
 	if commentValidation(w, comment) == false {
 		return
 	}
 	if err := dao.PostComment(&comment); err != nil {
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -314,25 +349,29 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 func getComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
-	bookKey, err := strconv.Atoi(vars["bookId"])
-	if err != nil {
+	bookId, err := strconv.Atoi(vars["bookId"])
+	if err != nil || bookId < 0 {
 		returnError(w,400,"Bad Request. Invalid Book ID.")
+		log.Println(err)
 		return
 	}	
-	key, err := strconv.Atoi(vars["id"])
-	if err != nil {
+	commentId, err := strconv.Atoi(vars["id"])
+	if err != nil || commentId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Comment ID.")
+		log.Println(err)
 		return
 	}	
 	var comment dao.Comment
-	comment.ID = uint(key)
-	comment.BookID = uint(bookKey)
+	comment.ID = uint(commentId)
+	comment.BookID = uint(bookId)
 	if err := dao.GetComment(&comment); err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			returnError(w, 404, "Record Not Found.")
+			log.Println(err)
 			return
 		}
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -342,22 +381,25 @@ func getComment(w http.ResponseWriter, r *http.Request) {
 func putComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")	
 	vars := mux.Vars(r)
-	bookKey, err := strconv.Atoi(vars["bookId"])
-	if err != nil {
+	bookId, err := strconv.Atoi(vars["bookId"])
+	if err != nil || bookId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Book ID.")
+		log.Println(err)
 		return
 	}
-	key, err := strconv.Atoi(vars["id"])
-	if err != nil {
+	commentId, err := strconv.Atoi(vars["id"])
+	if err != nil || commentId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Comment ID.")
+		log.Println(err)
 		return
 	}
 	var comment dao.Comment
-	comment.BookID = uint(bookKey)
-	comment.ID = uint(key)
+	comment.BookID = uint(bookId)
+	comment.ID = uint(commentId)
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		returnError(w, 400, "Bad Request.")
+		log.Println(err)
 		return
 	}
 	json.Unmarshal(reqBody, &comment)
@@ -366,10 +408,12 @@ func putComment(w http.ResponseWriter, r *http.Request) {
 	}
 	if dao.ValidateCommentId(comment.BookID, comment.ID) == false {
 		returnError(w, 404, "Record Not Found.")
+		log.Println(err)
 		return
 	}
 	if err := dao.PutComment(&comment); err != nil {
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -379,25 +423,29 @@ func putComment(w http.ResponseWriter, r *http.Request) {
 func deleteComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")	
 	vars := mux.Vars(r)
-	bookKey, err := strconv.Atoi(vars["bookId"])
-	if err != nil {
+	bookId, err := strconv.Atoi(vars["bookId"])
+	if err != nil || bookId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Book ID.")
+		log.Println(err)
 		return
 	}
-	key, err := strconv.Atoi(vars["id"])
-	if err != nil {
+	commentId, err := strconv.Atoi(vars["id"])
+	if err != nil || commentId < 0 {
 		returnError(w, 400, "Bad Request. Invalid Comment ID.")
+		log.Println(err)
 		return
 	}
 	var comment dao.Comment
-	comment.BookID = uint(bookKey)
-	comment.ID = uint(key)
+	comment.BookID = uint(bookId)
+	comment.ID = uint(commentId)
 	if err := dao.DeleteComment(&comment); err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			returnError(w, 404, "Record Not Found.")
+			log.Println(err)
 			return
 		}
 		returnError(w, 500, err.Error())
+		log.Println(err)
 		return
 	}		
 	w.WriteHeader(http.StatusOK)

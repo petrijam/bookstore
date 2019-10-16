@@ -1,7 +1,7 @@
 package dao
 
 import (
-	"github.com/jinzhu/gorm"	
+	"github.com/jinzhu/gorm"
 )
 
 type Comment struct {
@@ -11,11 +11,11 @@ type Comment struct {
 	CommentText string `json:"commentText"`
 }
 
-func GetComments(totalRowsP *int,pageNumberP *int,pageSizeP *int, commentsP *[]Comment) error {
-	if err := db.Model(&Comment{}).Count(totalRowsP).Error; err != nil {
+func GetComments(totalRowsP *int,pageNumberP *int,pageSizeP *int,bookId *int,commentsP *[]Comment) error {
+	if err := db.Where("book_id = ?",*bookId).Model(&Comment{}).Count(totalRowsP).Error; err != nil {
 		return err
 	}
-	if err := db.Select("id, created_at, updated_at, deleted_at, book_id, author, comment_text").Limit(*pageSizeP).Offset((*pageNumberP-1) * *pageSizeP).Find(commentsP).Error; err != nil {
+	if err := db.Where("book_id = ?",*bookId).Select("id, created_at, updated_at, deleted_at, book_id, author, comment_text").Limit(*pageSizeP).Offset((*pageNumberP-1) * *pageSizeP).Find(commentsP).Error; err != nil {
 		return err
 	}
 	return nil
