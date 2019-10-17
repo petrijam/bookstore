@@ -254,6 +254,15 @@ definitions:
    properties:
     id:
      type: integer
+    createdAt:
+     type: string
+     format: date-time
+    updatedAt:
+     type: string
+     format: date-time
+    deletedAt:
+     type: string
+     format: date-time
     title:
      type: string
     author:
@@ -267,10 +276,6 @@ definitions:
      format: date-time
     pages:
      type: integer
-    comments:
-      type: array
-      items:
-        $ref: '#/definitions/Comment'
   BookPost:
    type: object
    properties:
@@ -287,10 +292,6 @@ definitions:
      format: date-time
     pages:
      type: integer
-    comments:
-      type: array
-      items:
-        $ref: '#/definitions/CommentPost'
   BookPut:
    type: object
    properties:
@@ -312,6 +313,15 @@ definitions:
    properties:
     id:
      type: integer
+    createdAt:
+     type: string
+     format: date-time
+    updatedAt:
+     type: string
+     format: date-time
+    deletedAt:
+     type: string
+     format: date-time
     bookId:
      type: integer
     author:

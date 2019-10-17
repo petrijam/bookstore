@@ -13,7 +13,6 @@ type Book struct {
 	Publisher       string    `json:"publisher"`
 	PublicationDate time.Time `json:"publicationDate"`
 	Pages           int       `json:"pages"`
-	Comments        []Comment `json:"comments"`
 }
 
 func GetBooks(totalRowsP *int,pageNumberP *int,pageSizeP *int, booksP *[]Book) error {
